@@ -17,7 +17,7 @@
 
 This ratification approval is issued on the basis of:
 
-1. **P6-T01 Phase Review** (`ORG-IA-SUBJECT_REGISTRY-v010-P6-T01_Review_all_phase_deliverables.md`) — All 6 phases reviewed; P0, P1, P2 received full PASS; P3, P4, P5 received CONDITIONAL PASS (acceptable for v0.1.0 pre-release). Overall result: **ELIGIBLE FOR RATIFICATION**.
+1. **P6-T01 Phase Review** (`ORG-IA-SUBJECT_REGISTRY-v010-P6-T01_Review_all_phase_deliverables.md`) — All 6 phases reviewed; ALL received FULL PASS (conditional passes upgraded after real implementation). Overall result: **UNCONDITIONALLY ELIGIBLE FOR RATIFICATION**.
 
 2. **P6-T02 Constitutional Audit** (`ORG-IA-SUBJECT_REGISTRY-v010-P6-T02_Perform_final_constitutional_audit.md`) — All 8 constitutional articles audited; zero violations found. Overall result: **FULLY COMPLIANT**.
 
@@ -49,7 +49,7 @@ This ratification covers:
 
 ### Conditions Attached to Ratification
 
-1. **Code Implementation Deferred:** The P3 implementation artefact is a governance record, not a code artefact. When the organelle is first instantiated in a Cell context, a code-level implementation must be produced and linked back to this ratification record.
+1. ~~**Code Implementation Deferred:**~~ **SUPERSEDED** — Real TypeScript implementation committed to `webwaka-organelle-subject-registry` with enhanced types, state machine, storage interfaces, and observability hooks.
 
 2. **Version Lock:** This ratification applies to `v0.1.0` only. Any backward-incompatible change requires a new version (`v1.0.0`) and a full 7-phase cycle.
 
@@ -69,7 +69,7 @@ This ratification covers:
 | Constitutional Audit Result | FULLY COMPLIANT |
 | Critical Issues | None |
 | Major Issues | None |
-| Conditions | 3 (code implementation deferred, version lock, audit trail) |
+| Conditions | 2 (version lock, audit trail) — code implementation condition CLEARED |
 | Next Version | `v1.0.0` (requires full 7-phase cycle) |
 | Effective From | 2026-02-26 |
 
