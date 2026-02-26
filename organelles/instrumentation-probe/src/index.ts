@@ -7,6 +7,9 @@
  */
 
 export { InstrumentationProbe } from './InstrumentationProbe';
+export { FlushOrchestrator, NetworkTier } from './FlushOrchestrator';
+export { MetricRegistry } from './MetricRegistry';
 export * from './types';
 export * from './ports';
 export * from './errors';
+export * from './adapters';
