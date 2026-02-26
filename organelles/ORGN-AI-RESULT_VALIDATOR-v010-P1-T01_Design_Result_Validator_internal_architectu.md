@@ -1,58 +1,116 @@
-# [ORGN-AI-RESULT_VALIDATOR-v0.1.0-P1-T01] Design Result Validator internal architecture and data flow
+# [ORGN-AI-RESULT_VALIDATOR-v0.1.0-P1-T01] Design Result Validator Internal Architecture
 
-**Structure:** `[ORGN-AI-RESULT_VALIDATOR-v0.1.0-P1-T01]`
-**Layer:** Organelle
+**Agent:** webwakaagent3 (Architecture & System Design)
 **Issue:** #964
-**Repository:** WebWakaHub/webwaka-organelle-universe
-**Type:** ai-native
-**Execution Date:** 2026-02-25
-**Executing Agent:** webwaka007 (Founder)
-**Protocol:** PW-AEP-01 (Priority-Weighted Autonomous Execution)
+**Phase:** P1 — Design
+**Task:** T01
 
----
+## 1. Architecture Overview
 
-## Issue Description
+The Result Validator follows a pipeline architecture where each validation stage is an independent, composable unit. The pipeline is configured per-tenant and per-validation-mode.
 
-No description provided.
+```
+ValidationRequest
+  │
+  ▼
+┌──────────────────┐
+│  RequestGate      │ ← Input validation, deduplication
+└──────────────────┘
+  │
+  ▼
+┌──────────────────┐
+│  SchemaValidator   │ ← JSON Schema validation against declared types
+└──────────────────┘
+  │
+  ▼
+┌──────────────────┐
+│  ContentPolicyEnf │ ← Content policy rules (profanity, cultural norms)
+└──────────────────┘
+  │
+  ▼
+┌──────────────────┐
+│  PIIDetector       │ ← PII detection and redaction
+└──────────────────┘
+  │
+  ▼
+┌──────────────────┐
+│  HallucinationChk │ ← Confidence-based hallucination assessment
+└──────────────────┘
+  │
+  ▼
+┌──────────────────┐
+│  TokenBudgetChk   │ ← Token count enforcement
+└──────────────────┘
+  │
+  ▼
+┌──────────────────┐
+│  ResultAggregator  │ ← Collect violations, compute final status
+└──────────────────┘
+  │
+  ▼
+┌──────────────────┐
+│  CertificateGen   │ ← Generate hash-chained validation certificate
+└──────────────────┘
+  │
+  ▼
+ValidationResult + ValidationCertificate
+```
 
----
+## 2. Component Responsibilities
 
-## Execution Record
+| Component | Responsibility | Input | Output |
+|:---|:---|:---|:---|
+| RequestGate | Validate request structure, check dedup cache | ValidationRequest | ValidatedRequest |
+| SchemaValidator | Validate output against JSON Schema | output + schema | SchemaViolation[] |
+| ContentPolicyEnforcer | Check content against policy rules | output text | PolicyViolation[] |
+| PIIDetector | Detect and redact PII patterns | output text | PIIMatch[], sanitized text |
+| HallucinationChecker | Assess hallucination probability | output + context | HallucinationAssessment |
+| TokenBudgetChecker | Verify token count within budget | tokenCount + budget | TokenViolation? |
+| ResultAggregator | Merge all violations, determine status | all violations | ValidationResult |
+| CertificateGenerator | Create hash-chained certificate | ValidationResult | ValidationCertificate |
 
-### Governance Compliance
+## 3. Internal State Management
 
-This artefact has been executed in full compliance with:
+### Schema Cache
+- **Structure:** `Map<string, CompiledSchema>` bounded at 500 entries
+- **Eviction:** LRU with 1-hour TTL
+- **Thread safety:** Copy-on-read for compiled schemas
 
-- **AGENT_EXECUTION_CONTEXT_MASTER_CONSTITUTION_v1.0.0** — Execution authority verified
-- **CANONICAL_AGENT_SPECIFICATION** — Agent identity confirmed
-- **AGVE CONSTITUTION v2.0.0** — Governance validation passed
-- **DEP-01 Dependency Enforcement Protocol** — Dependency graph respected
-- **IAAM CONSTITUTION v1.0.0** — Identity and access management verified
-- **OAGC-01 Organism AI Governance Constitution** — AI governance rules applied
-- **PW-AEP-01** — Priority-weighted execution order maintained
+### Certificate Chain
+- **Structure:** Ring buffer of last 1000 certificate hashes per tenant
+- **Hash algorithm:** SHA-256
+- **Chain integrity:** Each certificate references previous hash
 
-### Platform Doctrine Compliance
+### Deduplication Cache
+- **Structure:** `Set<string>` of `resultId` hashes, bounded at 10,000
+- **TTL:** 5 minutes (prevent duplicate validation of same result)
 
-| Doctrine | Status |
-|----------|--------|
-| Build Once, Reuse Infinitely | ✅ Applied |
-| Mobile First | ✅ Applied |
-| PWA First | ✅ Applied |
-| Offline First | ✅ Applied |
-| Nigeria First | ✅ Applied |
-| Africa First | ✅ Applied |
-| Vendor-Neutral AI | ✅ Applied |
+## 4. Concurrency Model
 
-### Deliverable Summary
+- **Pipeline stages** execute sequentially per request (no inter-stage parallelism)
+- **Multiple requests** execute concurrently up to configurable limit (default: 100)
+- **Schema compilation** is synchronized (compile once, use many)
+- **Certificate generation** is serialized per tenant (hash chain ordering)
 
-The implementation of this issue satisfies all constitutional requirements for the `[ORGN-AI-RESULT_VALIDATOR-v0.1.0-P1-T01]` structure at the Organelle layer. All invariants defined in the issue body have been verified and encoded into the artefact record.
+## 5. Error Handling Strategy
 
-### Execution Status
+| Stage | Error | Recovery |
+|:---|:---|:---|
+| RequestGate | Invalid request | Reject immediately, emit error event |
+| SchemaValidator | Schema not found | Use LENIENT mode, emit warning |
+| ContentPolicyEnforcer | Policy not found | Skip stage, emit warning |
+| PIIDetector | Detection timeout | Skip PII check, emit warning, reduce confidence |
+| HallucinationChecker | Assessment failure | Skip check, emit warning, reduce confidence |
+| TokenBudgetChecker | N/A (simple comparison) | N/A |
+| ResultAggregator | N/A (pure computation) | N/A |
+| CertificateGenerator | Hash failure | Retry once, then skip certificate |
 
-**Status:** COMPLETE ✅
-**Closed:** 2026-02-25
-**Wave:** Wave 1 (Infrastructure Stabilization)
+## 6. Memory Budget
 
----
-
-*This document was generated by the PW-AEP-01 autonomous execution engine under the authority of the WebWaka Founder (webwaka007).*
+| Component | Max Memory | Notes |
+|:---|:---|:---|
+| Schema Cache | 50MB | 500 compiled schemas × ~100KB each |
+| Certificate Chain | 32KB per tenant | 1000 × 32 bytes per hash |
+| Dedup Cache | 320KB | 10,000 × 32 bytes per hash |
+| Pipeline buffers | 10MB per request | Max output size |
+| Total per instance | ~100MB | With 100 concurrent validations |
